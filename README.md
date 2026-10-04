@@ -4,7 +4,7 @@
 
 ## Структура проекта
 * `/frontend` — клиентская часть (React 19, Vite, Three.js, TypeScript).
-* `/backend` — серверная часть (Python/FastAPI, PHP).
+* `/backend` — серверная часть (PHP).
 * `/ai` — модули машинного обучения (PyTorch).
 * `/devops` — конфигурации для развертывания (Docker, Docker-Compose).
 
