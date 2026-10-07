@@ -118,15 +118,15 @@ export const TopBar: React.FC = () => {
       {/* Brand & 2D/3D Mode Switcher */}
       <div className="flex items-center gap-4">
         {/* Brand without 3d editor badge */}
-        <Link to="/projects" title="К проектам" className="hover:opacity-90">
-          <LogoMark className="w-9 h-9 text-base" />
+        <Link to="/projects" title="К проектам" className="hover:opacity-90 flex items-center">
+          <LogoMark className="h-8" />
         </Link>
 
         {/* 2D / 3D Switcher */}
         <div className="flex items-center bg-slate-100/90 p-1 rounded-lg border border-slate-200/80">
           <button
             type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-md text-xs font-bold transition-all ${
               viewMode === '2D' 
                 ? 'bg-white text-[#538896] shadow-2xs' 
                 : 'text-slate-600 hover:text-slate-900'
@@ -139,7 +139,7 @@ export const TopBar: React.FC = () => {
           </button>
           <button
             type="button"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1.5 px-3 h-8 rounded-md text-xs font-bold transition-all ${
               viewMode === '3D' 
                 ? 'bg-white text-[#538896] shadow-2xs' 
                 : 'text-slate-600 hover:text-slate-900'
@@ -156,7 +156,7 @@ export const TopBar: React.FC = () => {
         <div className="flex items-center bg-slate-100/90 p-1 rounded-lg border border-slate-200/80">
           <button 
             type="button"
-            className={`p-1.5 rounded-md transition-all ${
+            className={`h-8 w-8 flex items-center justify-center rounded-md transition-all ${
               transformMode === 'translate' ? 'bg-white shadow-2xs text-[#538896]' : 'text-slate-500 hover:text-slate-800'
             }`} 
             title="Перемещение (W)"
@@ -166,7 +166,7 @@ export const TopBar: React.FC = () => {
           </button>
           <button 
             type="button"
-            className={`p-1.5 rounded-md transition-all ${
+            className={`h-8 w-8 flex items-center justify-center rounded-md transition-all ${
               transformMode === 'rotate' ? 'bg-white shadow-2xs text-[#538896]' : 'text-slate-500 hover:text-slate-800'
             }`} 
             title="Вращение (E)"
@@ -176,7 +176,7 @@ export const TopBar: React.FC = () => {
           </button>
           <button 
             type="button"
-            className={`p-1.5 rounded-md transition-all ${
+            className={`h-8 w-8 flex items-center justify-center rounded-md transition-all ${
               transformMode === 'scale' ? 'bg-white shadow-2xs text-[#538896]' : 'text-slate-500 hover:text-slate-800'
             }`} 
             title="Масштабирование (R)"
@@ -187,7 +187,7 @@ export const TopBar: React.FC = () => {
           <div className="w-px h-4 bg-slate-300 mx-1"></div>
           <button 
             type="button"
-            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center justify-center gap-1 px-2 h-8 rounded-md text-xs font-medium transition-all ${
               snap ? 'bg-[#538896] text-white shadow-2xs' : 'text-slate-500 hover:text-slate-800'
             }`} 
             title={snap ? 'Привязка к сетке включена (поворот по 45°) — нажмите, чтобы выключить' : 'Привязка выключена — нажмите, чтобы включить'}
@@ -199,7 +199,7 @@ export const TopBar: React.FC = () => {
             value={snapStep}
             onChange={(e) => setSnapStep(Number(e.target.value))}
             title="Шаг привязки = размер клетки сетки"
-            className="ml-1 bg-white border border-slate-200 text-slate-700 text-xs rounded p-1 outline-none"
+            className="ml-1 bg-white border border-slate-200 text-slate-700 text-xs rounded h-8 px-1 outline-none"
           >
             {SNAP_STEPS.map(step => (
               <option key={step} value={step}>{step} м</option>
@@ -222,7 +222,7 @@ export const TopBar: React.FC = () => {
               }
             }}
             title="Выбранный этаж редактируется, остальные становятся прозрачными"
-            className="bg-white border border-slate-200 text-slate-700 text-xs rounded focus:ring-blue-500 focus:border-blue-500 block p-1 outline-none mr-1"
+            className="bg-white border border-slate-200 text-slate-700 text-xs rounded focus:ring-blue-500 focus:border-blue-500 block h-8 px-2 outline-none mr-1"
           >
             <option value={0}>Все этажи</option>
             {Array.from({ length: Math.max(storeyTotal, currentFloor) }, (_, i) => i + 1).map((f) => (
@@ -232,14 +232,12 @@ export const TopBar: React.FC = () => {
           </select>
         </div>
 
-        {/* Person toggles moved to separate overlay component */}
-
         {/* Layer Visibility Toggles */}
         <div className="flex items-center bg-slate-100/90 p-1 rounded-lg border border-slate-200/80 gap-0.5 text-xs">
           <button
             type="button"
             onClick={() => toggleLayer('walls')}
-            className={`px-2 py-1 rounded-md font-semibold transition-all ${
+            className={`px-2 h-8 flex items-center justify-center rounded-md font-semibold transition-all ${
               layers.walls ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-400 line-through opacity-60'
             }`}
             title="Показать / Скрыть стены"
@@ -249,7 +247,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => toggleLayer('furniture')}
-            className={`px-2 py-1 rounded-md font-semibold transition-all ${
+            className={`px-2 h-8 flex items-center justify-center rounded-md font-semibold transition-all ${
               layers.furniture ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-400 line-through opacity-60'
             }`}
             title="Показать / Скрыть мебель"
@@ -259,7 +257,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => toggleLayer('openings')}
-            className={`px-2 py-1 rounded-md font-semibold transition-all ${
+            className={`px-2 h-8 flex items-center justify-center rounded-md font-semibold transition-all ${
               layers.openings ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-400 line-through opacity-60'
             }`}
             title="Показать / Скрыть двери и окна"
@@ -269,7 +267,7 @@ export const TopBar: React.FC = () => {
           <button
             type="button"
             onClick={() => toggleLayer('floors')}
-            className={`px-2 py-1 rounded-md transition-all ${
+            className={`px-2 h-8 flex items-center justify-center rounded-md transition-all ${
               layers.floors ? 'bg-white text-slate-800 shadow-2xs' : 'text-slate-400 line-through opacity-60'
             }`}
             title="Показать или скрыть полы"
@@ -283,7 +281,7 @@ export const TopBar: React.FC = () => {
       <div className="flex items-center gap-1.5">
         <button 
           type="button"
-          className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
+          className="h-8 w-8 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
           title="Отменить действие (Ctrl+Z)"
           onClick={undo}
           disabled={!canUndo}
@@ -292,7 +290,7 @@ export const TopBar: React.FC = () => {
         </button>
         <button 
           type="button"
-          className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
+          className="h-8 w-8 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
           title="Повторить действие (Ctrl+Y)"
           onClick={redo}
           disabled={!canRedo}
@@ -305,7 +303,7 @@ export const TopBar: React.FC = () => {
         {/* Duplicate / Delete */}
         <button 
           type="button"
-          className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
+          className="h-8 w-8 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
           title="Дублировать выбранный объект"
           onClick={handleDuplicate}
           disabled={!hasSelection}
@@ -314,7 +312,7 @@ export const TopBar: React.FC = () => {
         </button>
         <button 
           type="button"
-          className="p-1.5 hover:bg-red-50 active:bg-red-100 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
+          className="h-8 w-8 flex items-center justify-center hover:bg-red-50 active:bg-red-100 rounded-lg text-slate-600 disabled:opacity-30 disabled:pointer-events-none transition-colors" 
           title="Удалить выбранное (Delete)"
           onClick={handleDelete}
           disabled={!hasSelection}
@@ -323,7 +321,7 @@ export const TopBar: React.FC = () => {
         </button>
         <button 
           type="button"
-          className="p-1.5 hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 transition-colors" 
+          className="h-8 w-8 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 rounded-lg text-slate-600 transition-colors" 
           title="Очистить сцену"
           onClick={() => {
             if (objects.length > 0 && confirm('Очистить всю планировку?')) {
@@ -341,7 +339,7 @@ export const TopBar: React.FC = () => {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs shadow-2xs transition-all disabled:opacity-50"
+          className="px-3 h-8 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-lg flex items-center gap-1.5 text-xs shadow-2xs transition-all disabled:opacity-50"
           title="Сохранить проект"
         >
           <Save size={14} />
@@ -351,7 +349,7 @@ export const TopBar: React.FC = () => {
         <button 
           type="button"
           onClick={() => navigate('/projects')}
-          className="px-3 py-1.5 bg-[#966853] hover:bg-[#7d5644] text-white rounded-lg flex items-center gap-1.5 text-xs transition-all disabled:opacity-50"
+          className="px-3 h-8 bg-[#966853] hover:bg-[#7d5644] text-white rounded-lg flex items-center gap-1.5 text-xs transition-all disabled:opacity-50"
           title="К списку проектов"
         >
           <FolderOpen size={14} />
@@ -361,7 +359,7 @@ export const TopBar: React.FC = () => {
         <button 
           type="button"
           onClick={handleExportJSON}
-          className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
+          className="px-2.5 h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
           title="Экспорт проекта в файл JSON"
         >
           <Download size={14} />
@@ -373,7 +371,7 @@ export const TopBar: React.FC = () => {
         <button 
           type="button"
           onClick={toggleCatalog}
-          className={`px-3 py-1.5 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all border shadow-2xs ${
+          className={`px-3 h-8 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all border shadow-2xs ${
             isCatalogOpen 
               ? 'bg-blue-50 border-blue-200 text-blue-700' 
               : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -387,4 +385,3 @@ export const TopBar: React.FC = () => {
     </header>
   )
 }
-
