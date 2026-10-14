@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { freeLibraryIds } from '../catalog/shop'
 import { alignEdges, magnetOffset, storeyLevels } from './storeys'
 import { snapFootprint, useEditorStore } from './editorStore'
 import type { PlacedObject } from './editorStore'
@@ -16,6 +17,15 @@ function piece(partial: Partial<PlacedObject> & Pick<PlacedObject, 'id' | 'type'
     ...partial
   }
 }
+
+describe('shop library', () => {
+  it('gives every account the free loft packs and keeps paid beds locked', () => {
+    const free = freeLibraryIds()
+    expect(free).toContain('sofa_loft')
+    expect(free).toContain('wood_light')
+    expect(free).not.toContain('bed_loft')
+  })
+})
 
 describe('snapFootprint', () => {
   it('lands a box corner on the grid', () => {

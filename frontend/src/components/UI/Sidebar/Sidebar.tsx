@@ -3,6 +3,8 @@ import { ToolButton } from './ToolButton'
 import { useEditorStore } from '../../../store/editorStore'
 import { api } from '../../../api'
 import type { ObjectType } from '../../../store/editorStore'
+import { SHOP_MODELS, type ShopModel } from '../../../catalog/shop'
+import { useLibrary } from '../../../catalog/libraryApi'
 import { 
   Building2, 
   Sofa, 
@@ -66,15 +68,52 @@ const CATEGORIES: CatalogCategory[] = [
   { id: 'upload', name: '3D Модели', icon: <Upload size={16} /> }
 ]
 
+/** Which catalog tab a shop pack belongs to. Names stay the same as in the gallery. */
+function shopTab(model: ShopModel): CategoryId {
+  if (model.type === 'bed_loft') return 'bedroom'
+  if (model.type === 'shelf_wms') return 'office'
+  return 'living'
+}
+
+/** Types already drawn as fixed buttons, so a claimed pack is not listed twice. */
+const BUILTIN_SHOP_TYPES = new Set<ObjectType>(['sofa_loft', 'armchair_loft', 'shelf_wms'])
+
+/** Claimed gallery packs for one tab, using the shop title. */
+const ClaimedPacks: React.FC<{ tab: CategoryId; owns: (id: string) => boolean; onAdd: (type: ObjectType) => void }> = ({ tab, owns, onAdd }) => {
+  const packs = SHOP_MODELS.filter(model => owns(model.id) && shopTab(model) === tab && !BUILTIN_SHOP_TYPES.has(model.type))
+  if (packs.length === 0) return null
+  return (
+    <div className="mt-4">
+      <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">Из магазина</h3>
+      <div className="grid grid-cols-2 gap-2.5">
+        {packs.map(model => (
+          <ToolButton
+            key={model.id}
+            icon={<Package size={26} className="text-[#2f6fe0]" />}
+            label={model.name}
+            onClick={() => onAdd(model.type)}
+            draggable
+            onDragStart={(event) => event.dataTransfer.setData('type', model.type)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Right-hand catalog: rooms, furniture and imported meshes. */
 export const Sidebar: React.FC = () => {
   const { addObject, addRoom, isCatalogOpen, toggleCatalog, showToast } = useEditorStore()
+  const { owns } = useLibrary()
   const [activeTab, setActiveTab] = useState<CategoryId>('construction')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  /** Open the hidden file input used for glTF and OBJ import. */
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
 
+  /** Upload a mesh and place it with the same move, scale and rotate handles as built-in objects. */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -97,6 +136,7 @@ export const Sidebar: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  /** Drop a catalog type at the origin; the store seats it on the current floor. */
   const handleAdd = (type: ObjectType) => {
     addObject(type, [0, undefined as any, 0])
   }
@@ -360,6 +400,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'carpet')}
               />
             </div>
+            <ClaimedPacks tab="living" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
@@ -397,6 +438,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'nightstand')}
               />
             </div>
+            <ClaimedPacks tab="bedroom" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
@@ -494,6 +536,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'office_chair')}
               />
             </div>
+            <ClaimedPacks tab="office" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
