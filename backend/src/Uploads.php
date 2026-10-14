@@ -24,16 +24,23 @@ final class Uploads
     public static function store(): never
     {
         Auth::requireUser();
-        if (!isset($_FILES['file'])) {
-            Http::json(['error' => 'Файл не передан'], 400);
+        if (!isset($_FILES['file']) || !is_array($_FILES['file'])) {
+            Http::json(['error' => 'Сервер не принял файл. Он больше допустимого размера.'], 400);
         }
         $file = $_FILES['file'];
-        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
-        if (!in_array($ext, ['glb', 'gltf', 'obj'], true)) {
-            Http::json(['error' => 'Нужен GLB, GLTF или OBJ'], 400);
+        $uploadError = (int) ($file['error'] ?? UPLOAD_ERR_OK);
+        if ($uploadError === UPLOAD_ERR_INI_SIZE || $uploadError === UPLOAD_ERR_FORM_SIZE) {
+            Http::json(['error' => 'Файл больше лимита сервера'], 413);
         }
-        if (($file['size'] ?? 0) > 50 * 1024 * 1024) {
-            Http::json(['error' => 'Файл больше 50 МБ'], 400);
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            Http::json(['error' => 'Сервер не смог принять файл'], 400);
+        }
+        $ext = strtolower(pathinfo($file['name'] ?? '', PATHINFO_EXTENSION));
+        if (!in_array($ext, ['glb', 'gltf', 'obj', 'fbx'], true)) {
+            Http::json(['error' => 'Нужен GLB, GLTF, OBJ или FBX'], 400);
+        }
+        if (($file['size'] ?? 0) > 80 * 1024 * 1024) {
+            Http::json(['error' => 'Файл больше 80 МБ'], 400);
         }
 
         $name = bin2hex(random_bytes(12)) . '.' . $ext;
@@ -66,7 +73,7 @@ final class Uploads
             ]);
             
             $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-            $types = ['glb' => 'model/gltf-binary', 'gltf' => 'model/gltf+json', 'obj' => 'text/plain'];
+            $types = ['glb' => 'model/gltf-binary', 'gltf' => 'model/gltf+json', 'obj' => 'text/plain', 'fbx' => 'application/octet-stream'];
             header('Content-Type: ' . ($types[$ext] ?? 'application/octet-stream'));
             echo $result['Body'];
             exit;

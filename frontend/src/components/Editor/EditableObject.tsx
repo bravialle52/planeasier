@@ -57,7 +57,8 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
   
   const groupRef = useRef<THREE.Group>(null)
 
-  // Paint the chosen shop texture onto every solid part. Line edges are left alone.
+  // Re-apply after each commit: react-three-fiber rebuilds materials from JSX and would otherwise drop the map.
+  // needsUpdate is set only when the map actually changes, so a click does not reupload the GPU texture every frame.
   useLayoutEffect(() => {
     const root = groupRef.current
     if (!root) return
@@ -67,10 +68,13 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
       if (!mesh.isMesh || !mesh.material || Array.isArray(mesh.material)) return
       const material = mesh.material as THREE.MeshStandardMaterial
       if (!material.isMeshStandardMaterial) return
-      material.map = map
+      if (!('baseMap' in material.userData)) material.userData.baseMap = material.map ?? null
+      const next = map ?? (material.userData.baseMap as THREE.Texture | null)
+      if (material.map === next) return
+      material.map = next
       material.needsUpdate = true
     })
-  }, [obj.textureId, obj.color, children])
+  })
   const transformRef = useRef<any>(null)
   const dragInitialRef = useRef<{
     posX: number
@@ -409,7 +413,7 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
           </lineSegments>
         )}
 
-        {isPrimarySelected && !isGhost && <FaceHandles obj={obj} />}
+        {isPrimarySelected && !isGhost && transformMode === 'scale' && <FaceHandles obj={obj} />}
 
       </group>
 

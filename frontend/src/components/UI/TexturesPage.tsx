@@ -1,6 +1,6 @@
 import React from 'react'
 import { SiteHeader } from './SiteHeader'
-import { SHOP_TEXTURES } from '../../catalog/textures'
+import { SHOP_TEXTURES, texturePreviewUrl } from '../../catalog/textures'
 import { useLibrary } from '../../catalog/libraryApi'
 
 /** Texture shop. Owned finishes can be painted onto objects in the editor. */
@@ -17,7 +17,7 @@ export const TexturesPage: React.FC = () => {
             const owned = library.owns(item.id)
             return (
               <article key={item.id} className="tile bg-white border border-slate-200 rounded-2xl p-3">
-                <div className="h-20 rounded-lg bg-[#e8eef6] mb-2" />
+                <img src={texturePreviewUrl(item.id) || ''} alt={item.name} className="h-20 w-full rounded-lg object-cover mb-2" />
                 <div className="text-xs mb-2">{item.name}</div>
                 <button
                   type="button"

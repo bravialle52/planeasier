@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { freeLibraryIds } from '../catalog/shop'
+import { framePreview } from '../catalog/frame'
+import { meshIsHelper } from '../exportScene'
 import { alignEdges, magnetOffset, storeyLevels } from './storeys'
 import { snapFootprint, useEditorStore } from './editorStore'
 import type { PlacedObject } from './editorStore'
@@ -24,6 +26,24 @@ describe('shop library', () => {
     expect(free).toContain('sofa_loft')
     expect(free).toContain('wood_light')
     expect(free).not.toContain('bed_loft')
+  })
+})
+
+describe('framePreview', () => {
+  it('backs the camera up until a wide plan fits in frame', () => {
+    const tight = framePreview([{ position: [0, 0, 0], scale: [2, 1, 2] }])
+    const wide = framePreview([{ position: [0, 0, 0], scale: [24, 0.1, 18] }])
+    const tightDist = Math.hypot(tight.position[0], tight.position[2])
+    const wideDist = Math.hypot(wide.position[0], wide.position[2])
+    expect(wideDist).toBeGreaterThan(tightDist * 4)
+    expect(wide.target[0]).toBeCloseTo(0)
+  })
+})
+
+describe('meshIsHelper', () => {
+  it('keeps editor knobs out of the downloaded model', () => {
+    expect(meshIsHelper({ fpvHandle: { objectId: 'a' } })).toBe(true)
+    expect(meshIsHelper(undefined)).toBe(false)
   })
 })
 

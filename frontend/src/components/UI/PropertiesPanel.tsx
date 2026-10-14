@@ -291,6 +291,8 @@ export const PropertiesPanel: React.FC = () => {
     updateObjectProperties(selectedObject.id, { color })
   }
   const handleTexture = (textureId: string) => {
+    const active = document.activeElement as HTMLElement | null
+    active?.blur?.()
     const next = selectedObject.textureId === textureId ? '' : textureId
     updateObjectProperties(selectedObject.id, { textureId: next })
   }

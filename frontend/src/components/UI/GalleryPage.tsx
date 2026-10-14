@@ -2,6 +2,7 @@ import React from 'react'
 import { SiteHeader } from './SiteHeader'
 import { SHOP_MODELS } from '../../catalog/shop'
 import { useLibrary } from '../../catalog/libraryApi'
+import { ModelThumb } from './ModelThumb'
 
 /** Model shop. Claimed packs show up in the editor catalog under the same names. */
 export const GalleryPage: React.FC = () => {
@@ -17,7 +18,7 @@ export const GalleryPage: React.FC = () => {
             const owned = library.owns(item.id)
             return (
               <article key={item.id} className="tile bg-white border border-slate-200 rounded-2xl p-4">
-                <div className="h-28 rounded-xl bg-gradient-to-br from-[#dbeafe] to-[#93c5fd] mb-3" />
+                <div className="mb-3"><ModelThumb type={item.type} /></div>
                 <div className="text-sm">{item.name}</div>
                 <div className="text-xs text-slate-500 mt-1 mb-3">{item.blurb}</div>
                 <button

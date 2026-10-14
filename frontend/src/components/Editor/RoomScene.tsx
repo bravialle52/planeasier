@@ -27,7 +27,16 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
   useEffect(() => {
     const typing = (event: KeyboardEvent) => {
       const el = event.target as HTMLElement | null
-      return Boolean(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'))
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || el.isContentEditable
+    }
+    const release = () => {
+      flyKeys.current.f = false
+      flyKeys.current.b = false
+      flyKeys.current.l = false
+      flyKeys.current.r = false
+      flyKeys.current.fast = false
     }
     const setKey = (code: string, down: boolean) => {
       const keys = flyKeys.current
@@ -42,16 +51,34 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
       setKey(event.code, true)
     }
     const onUp = (event: KeyboardEvent) => setKey(event.code, false)
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest?.('button, a, input, textarea, select')) release()
+    }
     window.addEventListener('keydown', onDown)
     window.addEventListener('keyup', onUp)
+    window.addEventListener('blur', release)
+    window.addEventListener('pointerdown', onPointerDown)
     return () => {
       window.removeEventListener('keydown', onDown)
       window.removeEventListener('keyup', onUp)
+      window.removeEventListener('blur', release)
+      window.removeEventListener('pointerdown', onPointerDown)
+      release()
     }
   }, [])
 
   useFrame((_, delta) => {
     if (viewMode === 'FPV') return
+    const active = document.activeElement as HTMLElement | null
+    const tag = active?.tagName
+    if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      flyKeys.current.f = false
+      flyKeys.current.b = false
+      flyKeys.current.l = false
+      flyKeys.current.r = false
+      return
+    }
     const keys = flyKeys.current
     if (!keys.f && !keys.b && !keys.l && !keys.r) return
     const controls = controlsRef.current
@@ -139,6 +166,7 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
         RIGHT: null as any
       }}
       enableZoom
+      enableDamping={false}
       maxPolarAngle={viewMode === '2D' ? 0.01 : Math.PI / 2 - 0.05}
       minDistance={1}
       maxDistance={250}

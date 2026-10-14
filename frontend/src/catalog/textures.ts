@@ -73,6 +73,14 @@ function paint(kind: ShopTexture['kind'], ctx: CanvasRenderingContext2D) {
   }
 }
 
+/** PNG of a shop finish for the library cards. */
+export function texturePreviewUrl(id: string): string | null {
+  const texture = textureById(id)
+  const image = texture?.image as HTMLCanvasElement | undefined
+  if (!image || typeof image.toDataURL !== 'function') return null
+  return image.toDataURL('image/png')
+}
+
 /** Repeatable GPU texture for a shop id. Cached so dragging an object does not rebuild the canvas. */
 export function textureById(id?: string | null): THREE.CanvasTexture | null {
   if (!id) return null

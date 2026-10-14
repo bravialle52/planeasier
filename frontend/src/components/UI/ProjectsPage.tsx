@@ -7,9 +7,6 @@ import { useEditorStore } from '../../store/editorStore'
 import type { PlacedObject } from '../../store/editorStore'
 import { SiteHeader } from './SiteHeader'
 import { Preview3D } from './Preview3D'
-import { SHOP_MODELS } from '../../catalog/shop'
-import { SHOP_TEXTURES } from '../../catalog/textures'
-import { useLibrary } from '../../catalog/libraryApi'
 
 interface ProjectRow {
   id: string
@@ -33,7 +30,6 @@ export const ProjectsPage: React.FC = () => {
   const [projects, setProjects] = useState<ProjectRow[]>([])
   const [draftName, setDraftName] = useState(randomProjectName())
   const [error, setError] = useState('')
-  const library = useLibrary()
 
   const load = async () => {
     const res = await api('/api/projects')
@@ -90,13 +86,10 @@ export const ProjectsPage: React.FC = () => {
     load()
   }
 
-  const ownedModels = SHOP_MODELS.filter(item => library.owns(item.id))
-  const ownedTextures = SHOP_TEXTURES.filter(item => library.owns(item.id))
-
   return (
     <div className="min-h-screen bg-[#f3f6fb] text-slate-900">
       <SiteHeader />
-      <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+      <div className="max-w-6xl mx-auto p-6">
         <div>
           <div className="bg-white border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 mb-6">
             <input
@@ -116,7 +109,7 @@ export const ProjectsPage: React.FC = () => {
           </div>
           {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
           <h2 className="text-lg mb-3">Мои проекты</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {projects.map(project => (
               <article key={project.id} className="tile bg-white border border-slate-200 rounded-2xl overflow-hidden">
                 <button type="button" className="block w-full text-left" onClick={() => open(project)}>
@@ -135,21 +128,6 @@ export const ProjectsPage: React.FC = () => {
             </button>
           </div>
         </div>
-        <aside className="bg-white border border-slate-200 rounded-2xl p-4 h-fit">
-          <h3 className="text-sm mb-3">Каталог материалов и мебели</h3>
-          <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Популярные модели</div>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            {ownedModels.map(item => (
-              <div key={item.id} className="tile rounded-xl bg-[#eef3fb] p-2 text-[10px] text-center text-slate-600">{item.name}</div>
-            ))}
-          </div>
-          <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Текстуры</div>
-          <div className="grid grid-cols-3 gap-2">
-            {ownedTextures.map(item => (
-              <div key={item.id} className="tile h-14 rounded-lg border border-slate-200 text-[10px] flex items-end p-1 text-slate-600">{item.name}</div>
-            ))}
-          </div>
-        </aside>
       </div>
     </div>
   )

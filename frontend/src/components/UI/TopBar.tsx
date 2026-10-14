@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { 
   Move, 
   RotateCw, 
@@ -114,10 +114,22 @@ export const TopBar: React.FC = () => {
     showToast('Экспорт', 'Файл JSON сохранен на ваше устройство', 'success')
   }
 
-  const handleExportGltf = () => {
-    const ok = downloadSceneGltf()
-    showToast(ok ? '3D экспорт' : 'Нет сцены', ok ? 'Файл glTF сохранен' : 'Откройте проект в редакторе', ok ? 'success' : 'error')
+  const handleExportGltf = (binary: boolean) => {
+    const ok = downloadSceneGltf(binary)
+    const label = binary ? 'GLB' : 'glTF'
+    showToast(ok ? '3D экспорт' : 'Нет сцены', ok ? `Файл ${label} сохранен` : 'Откройте проект в редакторе', ok ? 'success' : 'error')
   }
+
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!exportOpen) return
+    const close = (event: PointerEvent) => {
+      if (!exportRef.current?.contains(event.target as Node)) setExportOpen(false)
+    }
+    window.addEventListener('pointerdown', close)
+    return () => window.removeEventListener('pointerdown', close)
+  }, [exportOpen])
 
   return (
     <header className="h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/90 flex items-center justify-between px-4 z-20 shadow-xs select-none">
@@ -362,24 +374,30 @@ export const TopBar: React.FC = () => {
           <span>Проекты</span>
         </button>
 
-        <button 
-          type="button"
-          onClick={handleExportJSON}
-          className="px-2.5 h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
-          title="Экспорт проекта в файл JSON"
-        >
-          <Download size={14} />
-          <span>JSON</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleExportGltf}
-          className="px-2.5 h-8 bg-[#2f6bff] hover:bg-[#1f5bef] text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
-          title="Экспорт сцены в glTF"
-        >
-          <Box size={14} />
-          <span>glTF</span>
-        </button>
+        <div className="relative" ref={exportRef}>
+          <button
+            type="button"
+            onClick={() => setExportOpen(open => !open)}
+            className="px-2.5 h-8 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
+            title="Экспорт проекта"
+          >
+            <Download size={14} />
+            <span>Экспорт</span>
+          </button>
+          {exportOpen && (
+            <div className="absolute right-0 top-10 z-30 w-44 bg-white border border-slate-200 rounded-xl shadow-lg p-1">
+              <button type="button" className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-100" onClick={() => { setExportOpen(false); handleExportJSON() }}>
+                JSON проекта
+              </button>
+              <button type="button" className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-100" onClick={() => { setExportOpen(false); handleExportGltf(false) }}>
+                glTF (.gltf)
+              </button>
+              <button type="button" className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-100" onClick={() => { setExportOpen(false); handleExportGltf(true) }}>
+                glTF бинарный (.glb)
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="w-px h-5 bg-slate-200 mx-0.5"></div>
 
