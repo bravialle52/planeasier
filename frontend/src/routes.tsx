@@ -8,6 +8,8 @@ import { ToastContainer } from './components/UI/ToastContainer'
 import { PersonControls } from './components/UI/PersonControls'
 import { AuthScreen } from './components/UI/AuthScreen'
 import { ProjectsPage } from './components/UI/ProjectsPage'
+import { GalleryPage } from './components/UI/GalleryPage'
+import { TexturesPage } from './components/UI/TexturesPage'
 import { LoadingPage } from './components/UI/LoadingPage'
 import { useAuth } from './store/authStore'
 import { useEditorStore } from './store/editorStore'
@@ -122,6 +124,8 @@ export function AppRoutes() {
         <Route path="/login" element={<GuestOnly><AuthScreen /></GuestOnly>} />
         <Route path="/register" element={<GuestOnly><AuthScreen /></GuestOnly>} />
         <Route path="/projects" element={<RequireAuth><ProjectsPage /></RequireAuth>} />
+        <Route path="/gallery" element={<RequireAuth><GalleryPage /></RequireAuth>} />
+        <Route path="/textures" element={<RequireAuth><TexturesPage /></RequireAuth>} />
         <Route path="/editor/:projectId" element={<RequireAuth><EditorRoute /></RequireAuth>} />
         <Route path="*" element={<HomeRedirect />} />
       </Routes>

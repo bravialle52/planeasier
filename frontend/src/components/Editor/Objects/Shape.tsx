@@ -3,6 +3,7 @@ import { Edges } from '@react-three/drei'
 import type { PlacedObject } from '../../../store/editorStore'
 import { WallMesh, FloorMesh, RoofMesh, WindowMesh, DoorMesh, BlockMesh, OpeningMesh } from './ArchitecturalMeshes'
 import { StairsMesh, CurtainMesh, CorniceMesh, SconceMesh, ChandelierMesh } from './DecorMeshes'
+import { LoftSofaMesh, LoftArmchairMesh, ShelfWmsMesh, LoftBedMesh, LoftTableMesh } from './StudioMeshes'
 import {
   SofaMesh,
   BedMesh,
@@ -66,6 +67,16 @@ export const Shape: React.FC<ShapeProps> = ({ obj, isGhost }) => {
     case 'sofa':
     case 'armchair':
       return <SofaMesh obj={obj} />
+    case 'sofa_loft':
+      return <LoftSofaMesh obj={obj} />
+    case 'armchair_loft':
+      return <LoftArmchairMesh obj={obj} />
+    case 'shelf_wms':
+      return <ShelfWmsMesh obj={obj} />
+    case 'bed_loft':
+      return <LoftBedMesh obj={obj} />
+    case 'table_loft':
+      return <LoftTableMesh obj={obj} />
     case 'coffee_table':
       return <TableMesh obj={obj} />
     case 'tv_unit':

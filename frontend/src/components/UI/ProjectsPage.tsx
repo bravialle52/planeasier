@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, SlidersHorizontal } from 'lucide-react'
 import { api, randomProjectName } from '../../api'
 import { useAuth } from '../../store/authStore'
 import { useEditorStore } from '../../store/editorStore'
 import type { PlacedObject } from '../../store/editorStore'
-import { LogoLockup } from './Logo'
+import { SiteHeader } from './SiteHeader'
+import { Preview3D } from './Preview3D'
+import { SHOP_MODELS } from '../../catalog/shop'
+import { SHOP_TEXTURES } from '../../catalog/textures'
+import { useLibrary } from '../../catalog/libraryApi'
 
 interface ProjectRow {
   id: string
@@ -13,41 +18,22 @@ interface ProjectRow {
   data?: { objects?: PlacedObject[] }
 }
 
-const Preview: React.FC<{ objects: PlacedObject[] }> = ({ objects }) => {
-  const walls = objects.filter(item => item.type === 'wall' || item.type === 'partition' || item.type === 'floor')
-  return (
-    <svg viewBox="-12 -12 24 24" className="w-full h-40 bg-slate-50">
-      {walls.map(item => {
-        const yaw = item.rotation?.[1] || 0
-        const x = item.position?.[0] || 0
-        const z = item.position?.[2] || 0
-        const length = item.type === 'floor' ? item.scale[0] : item.scale[0]
-        const thick = item.type === 'floor' ? item.scale[2] : Math.max(item.scale[2], 0.15)
-        return (
-          <rect
-            key={item.id}
-            x={-length / 2}
-            y={-thick / 2}
-            width={length}
-            height={thick}
-            transform={`translate(${x} ${z}) rotate(${(-yaw * 180) / Math.PI})`}
-            fill={item.type === 'floor' ? '#ffffff' : '#f8fffe'}
-            stroke="#538896"
-            strokeWidth="0.08"
-          />
-        )
-      })}
-    </svg>
-  )
+/** Format a project timestamp for the card footer. */
+function when(value?: string) {
+  if (!value) return 'Только что'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('ru-RU')
 }
 
+/** Project list with an isometric preview and the material catalog from the mockup. */
 export const ProjectsPage: React.FC = () => {
-  const { user, logout, rememberProject } = useAuth()
+  const { rememberProject } = useAuth()
   const navigate = useNavigate()
   const [projects, setProjects] = useState<ProjectRow[]>([])
   const [draftName, setDraftName] = useState(randomProjectName())
-
   const [error, setError] = useState('')
+  const library = useLibrary()
 
   const load = async () => {
     const res = await api('/api/projects')
@@ -56,9 +42,7 @@ export const ProjectsPage: React.FC = () => {
     setProjects(json.projects || [])
   }
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   const createProject = async () => {
     const name = draftName.trim() || randomProjectName()
@@ -106,47 +90,66 @@ export const ProjectsPage: React.FC = () => {
     load()
   }
 
+  const ownedModels = SHOP_MODELS.filter(item => library.owns(item.id))
+  const ownedTextures = SHOP_TEXTURES.filter(item => library.owns(item.id))
+
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      <header className="h-16 bg-white border-b border-[#538896]/20 flex items-center justify-between px-6">
-        <LogoLockup />
-        <div className="flex items-center gap-3 text-sm text-[#538896]">
-          <span>{user?.displayName || user?.email}</span>
-          <button type="button" onClick={() => { logout(); navigate('/login', { replace: true }) }} className="px-3 py-1.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50">Выйти</button>
+    <div className="min-h-screen bg-[#f3f6fb] text-slate-900">
+      <SiteHeader />
+      <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+        <div>
+          <div className="bg-white border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row gap-2 mb-6">
+            <input
+              className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#2f6bff]"
+              value={draftName}
+              onChange={event => setDraftName(event.target.value)}
+            />
+            <button type="button" onClick={createProject} className="tile px-4 py-2 bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white rounded-xl text-sm flex items-center justify-center gap-1">
+              <Plus size={16} /> Новый проект
+            </button>
+            <button type="button" onClick={() => setDraftName(randomProjectName())} className="tile px-3 py-2 border border-[#93c5fd] text-[#1d4ed8] rounded-xl text-sm">
+              Другое имя
+            </button>
+            <button type="button" className="tile px-3 py-2 border border-slate-200 rounded-xl" title="Фильтр" aria-label="Фильтр">
+              <SlidersHorizontal size={16} />
+            </button>
+          </div>
+          {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+          <h2 className="text-lg mb-3">Мои проекты</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {projects.map(project => (
+              <article key={project.id} className="tile bg-white border border-slate-200 rounded-2xl overflow-hidden">
+                <button type="button" className="block w-full text-left" onClick={() => open(project)}>
+                  <Preview3D objects={project.data?.objects || []} />
+                  <div className="px-4 pt-3 text-sm">{project.name}</div>
+                </button>
+                <div className="px-4 pb-3 pt-1 flex gap-3 text-xs text-slate-500">
+                  <span>Изменен {when(project.updated_at)}</span>
+                  <button type="button" className="text-[#2f6bff]" onClick={() => rename(project)}>Переименовать</button>
+                  <button type="button" className="text-red-500" onClick={() => remove(project)}>Удалить</button>
+                </div>
+              </article>
+            ))}
+            <button type="button" onClick={createProject} className="tile min-h-52 border border-dashed border-slate-300 rounded-2xl bg-white/70 text-slate-600">
+              Создать проект
+            </button>
+          </div>
         </div>
-      </header>
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-2 mb-6">
-          <input
-            className="flex-1 border border-[#538896]/25 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#538896]"
-            value={draftName}
-            onChange={event => setDraftName(event.target.value)}
-          />
-          <button type="button" onClick={createProject} className="px-4 py-2 bg-[#966853] hover:bg-[#7d5644] text-white rounded-xl text-sm">
-            Новый проект
-          </button>
-          <button type="button" onClick={() => setDraftName(randomProjectName())} className="px-3 py-2 border border-[#539678] text-[#539678] rounded-xl text-sm">
-            Другое имя
-          </button>
-        </div>
-        {error && <div className="mb-4 text-sm text-[#966853]">{error}</div>}
-        {projects.length === 0 && (
-          <div className="text-sm text-[#538896]">Пока нет проектов. Создайте первый — имя уже подставлено.</div>
-        )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map(project => (
-            <article key={project.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-              <button type="button" className="block w-full text-left" onClick={() => open(project)}>
-                <Preview objects={project.data?.objects || []} />
-                <div className="px-4 pt-3 text-sm text-[#538896]">{project.name}</div>
-              </button>
-              <div className="px-4 pb-3 pt-1 flex gap-3 text-xs">
-                <button type="button" className="text-[#538896]" onClick={() => rename(project)}>Переименовать</button>
-                <button type="button" className="text-[#966853]" onClick={() => remove(project)}>Удалить</button>
-              </div>
-            </article>
-          ))}
-        </div>
+        <aside className="bg-white border border-slate-200 rounded-2xl p-4 h-fit">
+          <h3 className="text-sm mb-3">Каталог материалов и мебели</h3>
+          <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Популярные модели</div>
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            {ownedModels.map(item => (
+              <div key={item.id} className="tile rounded-xl bg-[#eef3fb] p-2 text-[10px] text-center text-slate-600">{item.name}</div>
+            ))}
+          </div>
+          <div className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">Текстуры</div>
+          <div className="grid grid-cols-3 gap-2">
+            {ownedTextures.map(item => (
+              <div key={item.id} className="tile h-14 rounded-lg border border-slate-200 text-[10px] flex items-end p-1 text-slate-600">{item.name}</div>
+            ))}
+          </div>
+        </aside>
       </div>
     </div>
   )

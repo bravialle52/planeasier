@@ -305,12 +305,12 @@ export const Person: React.FC = () => {
       lieTimer.current = 0
       moveState.current.flying = false
       if (groupRef.current) {
-        const [x, , z] = useEditorStore.getState().person.position
-        groupRef.current.position.set(x, 8, z)
-        groupRef.current.rotation.y = useEditorStore.getState().person.rotation
+        groupRef.current.position.set(0, 8, 0)
+        groupRef.current.rotation.y = 0
         groupRef.current.rotation.x = -Math.PI / 2
         groupRef.current.rotation.z = (Math.random() - 0.5) * 0.4
       }
+      updatePersonState({ position: [0, 0.05, 0], rotation: 0 })
     }
   }, [person.active])
 
@@ -338,6 +338,13 @@ export const Person: React.FC = () => {
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping(e)) return
+      if (e.code === 'Escape' || e.key === 'Escape') {
+        if (useEditorStore.getState().person.isFPV) {
+          e.preventDefault()
+          useEditorStore.getState().exitFPV()
+          return
+        }
+      }
       const m = moveState.current
       if (useEditorStore.getState().person.isFPV) {
         if (e.code === 'KeyW' || e.code === 'ArrowUp') m.forward = true
@@ -400,7 +407,15 @@ export const Person: React.FC = () => {
       if (!fpvControlsRef.current) {
         fpvControlsRef.current = new PointerLockControls(camera, gl.domElement)
       }
-      fpvControlsRef.current.lock()
+      const controls = fpvControlsRef.current
+      controls.lock()
+
+      const onUnlock = () => {
+        if (useEditorStore.getState().person.isFPV) {
+          useEditorStore.getState().exitFPV()
+        }
+      }
+      controls.addEventListener('unlock', onUnlock)
 
       const aimRay = () => {
         const raycaster = new THREE.Raycaster()
@@ -409,7 +424,6 @@ export const Person: React.FC = () => {
       }
 
       const onPointerDown = (event: PointerEvent) => {
-        const controls = fpvControlsRef.current
         if (!controls) return
         if (!controls.isLocked) {
           if (event.target === gl.domElement) controls.lock()
@@ -457,7 +471,7 @@ export const Person: React.FC = () => {
       }
 
       const onPointerUp = (event: PointerEvent) => {
-        if (!fpvControlsRef.current?.isLocked && aimDrag.current === null) return
+        if (!controls.isLocked && aimDrag.current === null) return
         if (event.button !== 0) return
         const gizmo = getActiveTransformControls()
         if (aimDrag.current === 'gizmo' && gizmo) gizmo.pointerUp(centerPointer)
@@ -466,7 +480,7 @@ export const Person: React.FC = () => {
       }
 
       const swallowMove = (event: PointerEvent) => {
-        if (fpvControlsRef.current?.isLocked) event.stopPropagation()
+        if (controls.isLocked) event.stopPropagation()
       }
 
       gl.domElement.addEventListener('pointerdown', onPointerDown, true)
@@ -480,9 +494,12 @@ export const Person: React.FC = () => {
         gl.domElement.removeEventListener('pointerdown', onPointerDown, true)
         gl.domElement.ownerDocument.removeEventListener('pointermove', swallowMove, true)
         gl.domElement.ownerDocument.removeEventListener('pointerup', onPointerUp, true)
+        controls.removeEventListener('unlock', onUnlock)
         if (aimDrag.current === 'face') fpvEndFace()
         aimDrag.current = null
-        fpvControlsRef.current?.unlock()
+        if (controls.isLocked) {
+          controls.unlock()
+        }
       }
     }
 
@@ -727,3 +744,4 @@ export const Person: React.FC = () => {
     </group>
   )
 }
+

@@ -8,6 +8,7 @@ require __DIR__ . '/../src/Http.php';
 require __DIR__ . '/../src/Auth.php';
 require __DIR__ . '/../src/Projects.php';
 require __DIR__ . '/../src/Uploads.php';
+require __DIR__ . '/../src/Library.php';
 
 Http::cors();
 
@@ -52,6 +53,13 @@ if (preg_match('#^/api/projects/([a-f0-9]+)$#', $path, $match)) {
     if ($method === 'DELETE') {
         Projects::delete($match[1]);
     }
+}
+
+if ($path === '/api/library' && $method === 'GET') {
+    Library::list();
+}
+if ($path === '/api/library' && $method === 'POST') {
+    Library::claim();
 }
 
 if ($path === '/api/models' && $method === 'POST') {

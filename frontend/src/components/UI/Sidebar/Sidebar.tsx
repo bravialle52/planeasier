@@ -297,6 +297,27 @@ export const Sidebar: React.FC = () => {
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">Мягкая мебель и ТВ</h3>
             <div className="grid grid-cols-2 gap-2.5">
               <ToolButton
+                icon={<Sofa size={26} className="text-[#2f6fe0]" />}
+                label="Диван Loft"
+                onClick={() => handleAdd('sofa_loft')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'sofa_loft')}
+              />
+              <ToolButton
+                icon={<Armchair size={26} className="text-[#3d7eea]" />}
+                label="Диван, кресло"
+                onClick={() => handleAdd('armchair_loft')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'armchair_loft')}
+              />
+              <ToolButton
+                icon={<Library size={26} className="text-[#8fb4e8]" />}
+                label="Стеллаж WMS"
+                onClick={() => handleAdd('shelf_wms')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'shelf_wms')}
+              />
+              <ToolButton
                 icon={<Sofa size={26} className="text-indigo-600" />}
                 label="Диван 3-местный"
                 onClick={() => handleAdd('sofa')}

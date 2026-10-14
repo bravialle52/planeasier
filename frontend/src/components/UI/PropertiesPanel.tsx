@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useEditorStore, getMinY } from '../../store/editorStore'
 import { isWallType, wallCenterY } from '../../store/wallMath'
+import { SHOP_TEXTURES } from '../../catalog/textures'
+import { useLibrary } from '../../catalog/libraryApi'
 import { 
   Trash2, 
   Copy, 
@@ -80,6 +82,7 @@ export const PropertiesPanel: React.FC = () => {
   const [scale, setScale] = useState<[number, number, number]>([1, 1, 1])
   const [elevation, setElevation] = useState<number>(0)
   const [rotations, setRotations] = useState<{ x: number; y: number; z: number }>({ x: 0, y: 0, z: 0 })
+  const library = useLibrary()
 
   useEffect(() => {
     if (selectedObject) {
@@ -287,6 +290,10 @@ export const PropertiesPanel: React.FC = () => {
   const handleColorSelect = (color: string) => {
     updateObjectProperties(selectedObject.id, { color })
   }
+  const handleTexture = (textureId: string) => {
+    const next = selectedObject.textureId === textureId ? '' : textureId
+    updateObjectProperties(selectedObject.id, { textureId: next })
+  }
 
   // Calculate footprint area in m²
   const area = (selectedObject.scale[0] * selectedObject.scale[2]).toFixed(2)
@@ -475,6 +482,22 @@ export const PropertiesPanel: React.FC = () => {
                 style={{ backgroundColor: swatch.color }}
                 title={swatch.label}
               />
+            ))}
+          </div>
+          <div className="mt-3 text-[11px] uppercase tracking-wide text-slate-500 mb-2">Текстура</div>
+          <div className="grid grid-cols-3 gap-2">
+            {SHOP_TEXTURES.filter(item => library.owns(item.id)).map(item => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleTexture(item.id)}
+                className={`tile h-14 rounded-lg border text-[10px] px-1 ${
+                  selectedObject.textureId === item.id ? 'border-[#2f6bff] bg-[#eaf1ff]' : 'border-slate-200 bg-slate-50'
+                }`}
+                title={item.name}
+              >
+                {item.name}
+              </button>
             ))}
           </div>
         </div>

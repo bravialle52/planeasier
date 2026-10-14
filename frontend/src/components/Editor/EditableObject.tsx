@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
+import { textureById } from '../../catalog/textures'
 import { TransformControls, Edges } from '@react-three/drei'
 import { useEditorStore, snapToGrid, snapFootprint, getMinY } from '../../store/editorStore'
 import { magnetOffset, restingY, restsOnSurfaces, wallSupportY } from '../../store/storeys'
@@ -55,6 +56,21 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
   const fpv = useEditorStore(state => state.person.isFPV)
   
   const groupRef = useRef<THREE.Group>(null)
+
+  // Paint the chosen shop texture onto every solid part. Line edges are left alone.
+  useLayoutEffect(() => {
+    const root = groupRef.current
+    if (!root) return
+    const map = textureById(obj.textureId)
+    root.traverse(node => {
+      const mesh = node as THREE.Mesh
+      if (!mesh.isMesh || !mesh.material || Array.isArray(mesh.material)) return
+      const material = mesh.material as THREE.MeshStandardMaterial
+      if (!material.isMeshStandardMaterial) return
+      material.map = map
+      material.needsUpdate = true
+    })
+  }, [obj.textureId, obj.color, children])
   const transformRef = useRef<any>(null)
   const dragInitialRef = useRef<{
     posX: number

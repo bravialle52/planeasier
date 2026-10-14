@@ -23,6 +23,7 @@ import { useAuth } from '../../store/authStore'
 import { Link, useNavigate } from 'react-router-dom'
 import { LogoMark } from './Logo'
 import { api, withMetrics } from '../../api'
+import { downloadSceneGltf } from '../../exportScene'
 
 export const TopBar: React.FC = () => {
   const navigate = useNavigate()
@@ -111,6 +112,11 @@ export const TopBar: React.FC = () => {
     downloadAnchor.click()
     downloadAnchor.remove()
     showToast('Экспорт', 'Файл JSON сохранен на ваше устройство', 'success')
+  }
+
+  const handleExportGltf = () => {
+    const ok = downloadSceneGltf()
+    showToast(ok ? '3D экспорт' : 'Нет сцены', ok ? 'Файл glTF сохранен' : 'Откройте проект в редакторе', ok ? 'success' : 'error')
   }
 
   return (
@@ -363,7 +369,16 @@ export const TopBar: React.FC = () => {
           title="Экспорт проекта в файл JSON"
         >
           <Download size={14} />
-          <span>Экспорт</span>
+          <span>JSON</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleExportGltf}
+          className="px-2.5 h-8 bg-[#2f6bff] hover:bg-[#1f5bef] text-white font-bold rounded-lg flex items-center gap-1.5 text-xs transition-all"
+          title="Экспорт сцены в glTF"
+        >
+          <Box size={14} />
+          <span>glTF</span>
         </button>
 
         <div className="w-px h-5 bg-slate-200 mx-0.5"></div>

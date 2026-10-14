@@ -141,7 +141,7 @@ export function restingY(objects: PlacedObject[], obj: PlacedObject, pos: [numbe
  * Because it is recomputed from the raw pointer position every move, pulling further breaks free.
  */
 export function magnetOffset(objects: PlacedObject[], obj: PlacedObject, x: number, z: number, yaw: number): { dx: number; dz: number } {
-  const ignore = (o: PlacedObject) => o.id === obj.id || (obj.groupId && o.groupId === obj.groupId)
+  const ignore = (o: PlacedObject) => o.id === obj.id || Boolean(obj.groupId && o.groupId === obj.groupId)
 
   if (isWallType(obj.type)) {
     const moved = wallEndpoints({ ...obj, position: [x, obj.position[1], z], rotation: [0, yaw, 0] })
@@ -159,38 +159,62 @@ export function magnetOffset(objects: PlacedObject[], obj: PlacedObject, x: numb
   }
 
   if (obj.type === 'floor' || obj.type === 'carpet') {
-    const quarter = Math.round(yaw / (Math.PI / 2))
-    if (Math.abs(yaw - quarter * Math.PI / 2) > 0.01) return { dx: 0, dz: 0 }
-    const swap = Math.abs(quarter) % 2 === 1
-    const hx = (swap ? obj.scale[2] : obj.scale[0]) / 2
-    const hz = (swap ? obj.scale[0] : obj.scale[2]) / 2
-    let bestX = { d: 0, dist: MAGNET_DIST }
-    let bestZ = { d: 0, dist: MAGNET_DIST }
-    for (const other of objects) {
-      if (other.type !== obj.type || ignore(other)) continue
-      const oq = Math.round(other.rotation[1] / (Math.PI / 2))
-      const oswap = Math.abs(oq) % 2 === 1
-      const ohx = (oswap ? other.scale[2] : other.scale[0]) / 2
-      const ohz = (oswap ? other.scale[0] : other.scale[2]) / 2
-      const edgesX = [other.position[0] - ohx, other.position[0] + ohx]
-      const edgesZ = [other.position[2] - ohz, other.position[2] + ohz]
-      for (const mine of [x - hx, x + hx]) {
-        for (const theirs of edgesX) {
-          const dist = Math.abs(theirs - mine)
-          if (dist < bestX.dist) bestX = { d: theirs - mine, dist }
-        }
-      }
-      for (const mine of [z - hz, z + hz]) {
-        for (const theirs of edgesZ) {
-          const dist = Math.abs(theirs - mine)
-          if (dist < bestZ.dist) bestZ = { d: theirs - mine, dist }
-        }
-      }
-    }
-    return { dx: bestX.d, dz: bestZ.d }
+    return alignEdges(x, z, yaw, obj.scale[0], obj.scale[2], partnersOf(objects, ignore, [obj.type]))
+  }
+
+  if (!isOpeningType(obj.type)) {
+    const kinds = obj.type.startsWith('stairs') ? ['opening', 'floor'] : ['floor', 'opening', obj.type]
+    return alignEdges(x, z, yaw, obj.scale[0], obj.scale[2], partnersOf(objects, ignore, kinds))
   }
 
   return { dx: 0, dz: 0 }
+}
+
+/** Snap one footprint edge to a nearby edge. Pulling past MAGNET_DIST drops the correction, so the piece comes free. */
+export function alignEdges(
+  x: number,
+  z: number,
+  yaw: number,
+  sizeX: number,
+  sizeZ: number,
+  partners: { position: [number, number, number]; rotation: [number, number, number]; scale: [number, number, number] }[]
+): { dx: number; dz: number } {
+  const quarter = Math.round(yaw / (Math.PI / 2))
+  if (Math.abs(yaw - quarter * Math.PI / 2) > 0.01) return { dx: 0, dz: 0 }
+  const swap = Math.abs(quarter) % 2 === 1
+  const hx = (swap ? sizeZ : sizeX) / 2
+  const hz = (swap ? sizeX : sizeZ) / 2
+  let bestX = { d: 0, dist: MAGNET_DIST }
+  let bestZ = { d: 0, dist: MAGNET_DIST }
+  for (const other of partners) {
+    const oq = Math.round(other.rotation[1] / (Math.PI / 2))
+    const oswap = Math.abs(oq) % 2 === 1
+    const ohx = (oswap ? other.scale[2] : other.scale[0]) / 2
+    const ohz = (oswap ? other.scale[0] : other.scale[2]) / 2
+    const edgesX = [other.position[0] - ohx, other.position[0] + ohx]
+    const edgesZ = [other.position[2] - ohz, other.position[2] + ohz]
+    for (const mine of [x - hx, x + hx]) {
+      for (const theirs of edgesX) {
+        const dist = Math.abs(theirs - mine)
+        if (dist < bestX.dist) bestX = { d: theirs - mine, dist }
+      }
+    }
+    for (const mine of [z - hz, z + hz]) {
+      for (const theirs of edgesZ) {
+        const dist = Math.abs(theirs - mine)
+        if (dist < bestZ.dist) bestZ = { d: theirs - mine, dist }
+      }
+    }
+  }
+  return { dx: bestX.d, dz: bestZ.d }
+}
+
+function partnersOf(
+  objects: PlacedObject[],
+  ignore: (other: PlacedObject) => boolean,
+  kinds: string[]
+) {
+  return objects.filter(other => !ignore(other) && kinds.includes(other.type))
 }
 
 export const restsOnSurfaces = (type: string) => !isWallType(type) && !isOpeningType(type) && !hangsInAir(type)
