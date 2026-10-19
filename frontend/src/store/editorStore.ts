@@ -60,6 +60,11 @@ export type ObjectType =
   | 'curtain'
   | 'cornice'
   | 'plant'
+  | 'sofa_loft'
+  | 'armchair_loft'
+  | 'shelf_wms'
+  | 'bed_loft'
+  | 'table_loft'
   // Primitives / Custom
   | 'block'
   | 'cylinder'
@@ -80,6 +85,8 @@ export interface PlacedObject {
   wallId?: string | null
   floor: number // 1, 2, 3...
   modelUrl?: string
+  /** Shop texture id. Empty means a flat color only. */
+  textureId?: string
 }
 
 export interface ToastItem {
@@ -246,6 +253,16 @@ export const getDefaultObjectConfig = (type: ObjectType): {
       return { scale: [0.45, 1.6, 0.45], yOffset: 0.8, color: white, name: 'Торшер напольный', isHole: false, materialType: 'metal' }
     case 'plant':
       return { scale: [0.5, 1.1, 0.5], yOffset: 0.55, color: white, name: 'Комнатное растение', isHole: false, materialType: 'paint' }
+    case 'sofa_loft':
+      return { scale: [2.2, 0.85, 0.95], yOffset: 0.425, color: '#2f6fe0', name: 'Диван Loft', isHole: false, materialType: 'fabric' }
+    case 'armchair_loft':
+      return { scale: [0.9, 0.85, 0.9], yOffset: 0.425, color: '#3d7eea', name: 'Диван, кресло', isHole: false, materialType: 'fabric' }
+    case 'shelf_wms':
+      return { scale: [1.0, 1.8, 0.35], yOffset: 0.9, color: '#8fb4e8', name: 'Стеллаж WMS', isHole: false, materialType: 'wood' }
+    case 'bed_loft':
+      return { scale: [1.8, 1.05, 2.1], yOffset: 0.525, color: '#d9e6f5', name: 'Кровать Mira', isHole: false, materialType: 'fabric' }
+    case 'table_loft':
+      return { scale: [1.6, 0.75, 0.9], yOffset: 0.375, color: '#e7d3b0', name: 'Стол Loft', isHole: false, materialType: 'wood' }
 
     // Primitives
     case 'block':
@@ -285,6 +302,7 @@ interface EditorState {
   person: { active: boolean; isFPV: boolean; position: [number, number, number]; rotation: number }
   togglePerson: () => void
   toggleFPV: () => void
+  exitFPV: () => void
   updatePersonState: (updates: Partial<{ active: boolean; isFPV: boolean; position: [number, number, number]; rotation: number }>) => void
 
   // Actions
@@ -517,15 +535,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     rotation: 0
   },
 
-  togglePerson: () => set(state => ({
-    person: { ...state.person, active: !state.person.active, isFPV: false }
-  })),
+  togglePerson: () => set(state => {
+    const nextActive = !state.person.active
+    return {
+      person: {
+        active: nextActive,
+        isFPV: false,
+        position: [0, 0.05, 0],
+        rotation: 0
+      }
+    }
+  }),
 
   toggleFPV: () => set(state => {
     const isFPV = !state.person.isFPV
     return {
       person: { ...state.person, active: true, isFPV },
       viewMode: isFPV ? 'FPV' : '3D'
+    }
+  }),
+
+  exitFPV: () => set(state => {
+    if (!state.person.isFPV) return state
+    return {
+      person: { ...state.person, isFPV: false },
+      viewMode: '3D'
     }
   }),
 
@@ -683,7 +717,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   clearObjects: () => set((state) => ({
     ...recordHistory(state),
     objects: [],
-    selectedObjectIds: []
+    selectedObjectIds: [],
+    person: { active: false, isFPV: false, position: [0, 0.05, 0], rotation: 0 }
   })),
 
   selectObjects: (ids, mode = 'set') => set((state) => {
@@ -730,7 +765,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   snapStep: SNAP_STEP,
   setSnapStep: (snapStep) => set({ snapStep, snap: true }),
 
-  setViewMode: (viewMode) => set({ viewMode }),
+  setViewMode: (viewMode) => set(state => ({
+    viewMode,
+    person: viewMode !== 'FPV' && state.person.isFPV ? { ...state.person, isFPV: false } : state.person
+  })),
 
   toggleViewMode: () => set((state) => ({ viewMode: state.viewMode === '3D' ? '2D' : '3D' })),
 

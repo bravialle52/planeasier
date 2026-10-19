@@ -3,6 +3,9 @@ import { ToolButton } from './ToolButton'
 import { useEditorStore } from '../../../store/editorStore'
 import { api } from '../../../api'
 import type { ObjectType } from '../../../store/editorStore'
+import { SHOP_MODELS, type ShopModel } from '../../../catalog/shop'
+import { useLibrary } from '../../../catalog/libraryApi'
+import { packUploads, MissingBufferError, UnreadableModelError } from '../../../importModel'
 import { 
   Building2, 
   Sofa, 
@@ -66,37 +69,93 @@ const CATEGORIES: CatalogCategory[] = [
   { id: 'upload', name: '3D Модели', icon: <Upload size={16} /> }
 ]
 
+/** Which catalog tab a shop pack belongs to. Names stay the same as in the gallery. */
+function shopTab(model: ShopModel): CategoryId {
+  if (model.type === 'bed_loft') return 'bedroom'
+  if (model.type === 'shelf_wms') return 'office'
+  return 'living'
+}
+
+/** Types already drawn as fixed buttons, so a claimed pack is not listed twice. */
+const BUILTIN_SHOP_TYPES = new Set<ObjectType>(['sofa_loft', 'armchair_loft', 'shelf_wms'])
+
+/** Claimed gallery packs for one tab, using the shop title. */
+const ClaimedPacks: React.FC<{ tab: CategoryId; owns: (id: string) => boolean; onAdd: (type: ObjectType) => void }> = ({ tab, owns, onAdd }) => {
+  const packs = SHOP_MODELS.filter(model => owns(model.id) && shopTab(model) === tab && !BUILTIN_SHOP_TYPES.has(model.type))
+  if (packs.length === 0) return null
+  return (
+    <div className="mt-4">
+      <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">Из магазина</h3>
+      <div className="grid grid-cols-2 gap-2.5">
+        {packs.map(model => (
+          <ToolButton
+            key={model.id}
+            icon={<Package size={26} className="text-[#2f6fe0]" />}
+            label={model.name}
+            onClick={() => onAdd(model.type)}
+            draggable
+            onDragStart={(event) => event.dataTransfer.setData('type', model.type)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/** Right-hand catalog: rooms, furniture and imported meshes. */
 export const Sidebar: React.FC = () => {
   const { addObject, addRoom, isCatalogOpen, toggleCatalog, showToast } = useEditorStore()
+  const { owns } = useLibrary()
   const [activeTab, setActiveTab] = useState<CategoryId>('construction')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  /** Open the hidden file input used for glTF and OBJ import. */
   const handleUploadClick = () => {
     fileInputRef.current?.click()
   }
 
+  /** Unpack an archive or a Max scene, then place every mesh with the same handles as built-in objects. */
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 50 * 1024 * 1024) {
-      showToast('Файл слишком большой', 'Нужен файл до 50 МБ', 'error')
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+    const clear = () => {
       if (fileInputRef.current) fileInputRef.current.value = ''
-      return
     }
-
-    const body = new FormData()
-    body.append('file', file)
-    const res = await api('/api/models', { method: 'POST', body }).catch(() => null)
-    if (!res || !res.ok) {
-      showToast('Не удалось загрузить', 'Сервер не принял модель', 'error')
-      if (fileInputRef.current) fileInputRef.current.value = ''
-      return
+    try {
+      showToast('Читаю архив', files.map(file => file.name).join(', '), 'info')
+      const packed = await packUploads(files)
+      let placed = 0
+      for (const [index, model] of packed.entries()) {
+        if (model.size > 80 * 1024 * 1024) {
+          showToast('Файл слишком большой', `${model.name} больше 80 МБ`, 'error')
+          continue
+        }
+        const body = new FormData()
+        body.append('file', model)
+        const res = await api('/api/models', { method: 'POST', body }).catch(() => null)
+        if (!res || !res.ok) {
+          const payload = res ? await res.json().catch(() => null) : null
+          showToast('Не удалось загрузить', payload?.error || model.name, 'error')
+          continue
+        }
+        const json = await res.json()
+        addObject('custom', [index * 2, 0.5, 0], json.url)
+        placed += 1
+      }
+      if (placed > 0) showToast('Модель на сцене', placed > 1 ? `Добавлено ${placed}` : packed[0].name, 'success')
+    } catch (error) {
+      if (error instanceof MissingBufferError) {
+        showToast('Не хватает файла', `В архиве нет ${error.fileName}`, 'error')
+      } else if (error instanceof UnreadableModelError) {
+        showToast('Не удалось прочитать', 'В архиве нет glTF, FBX, OBJ или сетки .max', 'error')
+      } else {
+        showToast('Не удалось прочитать', 'Архив повреждён или сцена .max без сетки', 'error')
+      }
     }
-    const json = await res.json()
-    addObject('custom', [0, 0.5, 0], json.url)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    clear()
   }
 
+  /** Drop a catalog type at the origin; the store seats it on the current floor. */
   const handleAdd = (type: ObjectType) => {
     addObject(type, [0, undefined as any, 0])
   }
@@ -297,6 +356,27 @@ export const Sidebar: React.FC = () => {
             <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wider mb-2.5">Мягкая мебель и ТВ</h3>
             <div className="grid grid-cols-2 gap-2.5">
               <ToolButton
+                icon={<Sofa size={26} className="text-[#2f6fe0]" />}
+                label="Диван Loft"
+                onClick={() => handleAdd('sofa_loft')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'sofa_loft')}
+              />
+              <ToolButton
+                icon={<Armchair size={26} className="text-[#3d7eea]" />}
+                label="Диван, кресло"
+                onClick={() => handleAdd('armchair_loft')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'armchair_loft')}
+              />
+              <ToolButton
+                icon={<Library size={26} className="text-[#8fb4e8]" />}
+                label="Стеллаж WMS"
+                onClick={() => handleAdd('shelf_wms')}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('type', 'shelf_wms')}
+              />
+              <ToolButton
                 icon={<Sofa size={26} className="text-indigo-600" />}
                 label="Диван 3-местный"
                 onClick={() => handleAdd('sofa')}
@@ -339,6 +419,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'carpet')}
               />
             </div>
+            <ClaimedPacks tab="living" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
@@ -376,6 +457,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'nightstand')}
               />
             </div>
+            <ClaimedPacks tab="bedroom" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
@@ -473,6 +555,7 @@ export const Sidebar: React.FC = () => {
                 onDragStart={(e) => e.dataTransfer.setData('type', 'office_chair')}
               />
             </div>
+            <ClaimedPacks tab="office" owns={owns} onAdd={handleAdd} />
           </div>
         )}
 
@@ -538,7 +621,7 @@ export const Sidebar: React.FC = () => {
         {activeTab === 'upload' && (
           <div className="flex flex-col gap-4">
             <div className="p-4 bg-blue-50/60 rounded-xl border border-blue-200/70 text-xs text-slate-600">
-              Вы можете загрузить свою 3D-модель в формате <b>.glb</b>, <b>.gltf</b> или <b>.obj</b> и разместить её в интерьере.
+              Можно загрузить <b>.rar</b>, <b>.zip</b>, <b>.max</b>, <b>.glb</b>, <b>.gltf</b>, <b>.fbx</b> или <b>.obj</b>. Архив распаковывается сам, сцена 3ds Max конвертируется в модель.
             </div>
 
             <button 
@@ -550,13 +633,14 @@ export const Sidebar: React.FC = () => {
                 <Upload size={24} />
               </div>
               <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600">Загрузить 3D файл</span>
-              <span className="text-xs text-slate-400 mt-1">GLB, GLTF, OBJ до 50 МБ</span>
+              <span className="text-xs text-slate-400 mt-1 text-center px-4">ZIP, RAR, MAX, GLB, FBX, OBJ или glTF. Из архива берутся модели, .max конвертируется сам.</span>
             </button>
             <input 
               type="file" 
               ref={fileInputRef} 
               className="hidden" 
-              accept=".obj,.gltf,.glb"
+              accept=".obj,.gltf,.glb,.fbx,.bin,.png,.jpg,.jpeg,.max,.zip,.rar"
+              multiple
               onChange={handleFileChange}
             />
           </div>

@@ -27,7 +27,16 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
   useEffect(() => {
     const typing = (event: KeyboardEvent) => {
       const el = event.target as HTMLElement | null
-      return Boolean(el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT'))
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON' || tag === 'A' || el.isContentEditable
+    }
+    const release = () => {
+      flyKeys.current.f = false
+      flyKeys.current.b = false
+      flyKeys.current.l = false
+      flyKeys.current.r = false
+      flyKeys.current.fast = false
     }
     const setKey = (code: string, down: boolean) => {
       const keys = flyKeys.current
@@ -42,16 +51,34 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
       setKey(event.code, true)
     }
     const onUp = (event: KeyboardEvent) => setKey(event.code, false)
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest?.('button, a, input, textarea, select')) release()
+    }
     window.addEventListener('keydown', onDown)
     window.addEventListener('keyup', onUp)
+    window.addEventListener('blur', release)
+    window.addEventListener('pointerdown', onPointerDown)
     return () => {
       window.removeEventListener('keydown', onDown)
       window.removeEventListener('keyup', onUp)
+      window.removeEventListener('blur', release)
+      window.removeEventListener('pointerdown', onPointerDown)
+      release()
     }
   }, [])
 
   useFrame((_, delta) => {
     if (viewMode === 'FPV') return
+    const active = document.activeElement as HTMLElement | null
+    const tag = active?.tagName
+    if (tag === 'BUTTON' || tag === 'A' || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+      flyKeys.current.f = false
+      flyKeys.current.b = false
+      flyKeys.current.l = false
+      flyKeys.current.r = false
+      return
+    }
     const keys = flyKeys.current
     if (!keys.f && !keys.b && !keys.l && !keys.r) return
     const controls = controlsRef.current
@@ -101,8 +128,11 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
       }
     } else if (viewMode === '3D') {
       if (previous === '2D' || previous === 'FPV') {
-        camera.position.set(target.x + 7, 7, target.z + 7)
-        controls?.target.set(target.x, 1, target.z)
+        camera.position.set(7, 7, 7)
+        camera.lookAt(0, 1, 0)
+        if (controls) {
+          controls.target.set(0, 1, 0)
+        }
       }
       if (controls) {
         controls.enableRotate = true
@@ -110,6 +140,19 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
       }
     }
   }, [viewMode, camera])
+
+  useEffect(() => {
+    const handleReset = () => {
+      camera.position.set(7, 7, 7)
+      camera.lookAt(0, 1, 0)
+      if (controlsRef.current) {
+        controlsRef.current.target.set(0, 1, 0)
+        controlsRef.current.update()
+      }
+    }
+    window.addEventListener('reset-camera-default', handleReset)
+    return () => window.removeEventListener('reset-camera-default', handleReset)
+  }, [camera])
 
   if (viewMode === 'FPV') return null
 
@@ -123,6 +166,7 @@ const CameraController: React.FC<{ viewMode: '3D' | '2D' | 'FPV' }> = ({ viewMod
         RIGHT: null as any
       }}
       enableZoom
+      enableDamping={false}
       maxPolarAngle={viewMode === '2D' ? 0.01 : Math.PI / 2 - 0.05}
       minDistance={1}
       maxDistance={250}
@@ -329,6 +373,15 @@ const MarqueeSelection: React.FC<{ onRect: (rect: { left: number; top: number; w
   return null
 }
 
+/** Publishes the live three.js scene so the glTF export can read it. */
+const SceneBridge: React.FC = () => {
+  const { scene } = useThree()
+  useEffect(() => {
+    ;(window as unknown as { __planeasierScene?: THREE.Scene }).__planeasierScene = scene
+  }, [scene])
+  return null
+}
+
 // Global Keyboard Shortcuts (Delete key, Undo/Redo, W/E/R)
 const KeyboardShortcutsManager: React.FC = () => {
   const { selectedObjectIds, removeObjects, undo, redo, setTransformMode } = useEditorStore()
@@ -339,6 +392,23 @@ const KeyboardShortcutsManager: React.FC = () => {
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
 
       if (e.key === 'Backspace') return
+
+      if (e.key === 'Escape' || e.code === 'Escape') {
+        const store = useEditorStore.getState()
+        if (store.person.isFPV) {
+          e.preventDefault()
+          store.exitFPV()
+          return
+        }
+        if (store.viewMode === '3D') {
+          e.preventDefault()
+          window.dispatchEvent(new CustomEvent('reset-camera-default'))
+          if (store.selectedObjectIds.length > 0) {
+            store.selectObjects([])
+          }
+          return
+        }
+      }
 
       const fpv = useEditorStore.getState().person.isFPV
       const key = e.key.toLowerCase()
@@ -481,6 +551,7 @@ export const RoomScene: React.FC = () => {
 
         {/* Camera Controller (2D Plan / 3D Perspective) */}
         <CameraController viewMode={viewMode} />
+        <SceneBridge />
 
         {/* Floor Plane for raycast intersection and visual bounds */}
         <Floor />

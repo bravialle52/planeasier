@@ -9,6 +9,7 @@ RUN apt-get update \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 COPY apache.conf /etc/apache2/sites-available/000-default.conf
+COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
 RUN a2enmod rewrite headers
 
 COPY . /var/www/html

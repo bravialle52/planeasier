@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react'
+import { textureById } from '../../catalog/textures'
 import { TransformControls, Edges } from '@react-three/drei'
 import { useEditorStore, snapToGrid, snapFootprint, getMinY } from '../../store/editorStore'
 import { magnetOffset, restingY, restsOnSurfaces, wallSupportY } from '../../store/storeys'
@@ -55,6 +56,25 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
   const fpv = useEditorStore(state => state.person.isFPV)
   
   const groupRef = useRef<THREE.Group>(null)
+
+  // Re-apply after each commit: react-three-fiber rebuilds materials from JSX and would otherwise drop the map.
+  // needsUpdate is set only when the map actually changes, so a click does not reupload the GPU texture every frame.
+  useLayoutEffect(() => {
+    const root = groupRef.current
+    if (!root) return
+    const map = textureById(obj.textureId)
+    root.traverse(node => {
+      const mesh = node as THREE.Mesh
+      if (!mesh.isMesh || !mesh.material || Array.isArray(mesh.material)) return
+      const material = mesh.material as THREE.MeshStandardMaterial
+      if (!material.isMeshStandardMaterial) return
+      if (!('baseMap' in material.userData)) material.userData.baseMap = material.map ?? null
+      const next = map ?? (material.userData.baseMap as THREE.Texture | null)
+      if (material.map === next) return
+      material.map = next
+      material.needsUpdate = true
+    })
+  })
   const transformRef = useRef<any>(null)
   const dragInitialRef = useRef<{
     posX: number
@@ -393,7 +413,7 @@ export const EditableObject: React.FC<EditableObjectProps> = ({ obj, isGhost, ch
           </lineSegments>
         )}
 
-        {isPrimarySelected && !isGhost && <FaceHandles obj={obj} />}
+        {isPrimarySelected && !isGhost && transformMode === 'scale' && <FaceHandles obj={obj} />}
 
       </group>
 

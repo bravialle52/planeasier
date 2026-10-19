@@ -40,6 +40,11 @@ final class Database
                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
                 expires_at TIMESTAMPTZ NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS library_items (
+                user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                item_id TEXT NOT NULL,
+                PRIMARY KEY (user_id, item_id)
+            );
             CREATE TABLE IF NOT EXISTS projects (
                 id TEXT PRIMARY KEY,
                 user_id TEXT REFERENCES users(id) ON DELETE CASCADE,

@@ -63,6 +63,7 @@ services:
       - S3_BUCKET=planeasier-models
     volumes:
       - ../backend:/var/www/html
+      - ../backend/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
       - /var/www/html/vendor
     depends_on:
       - db
